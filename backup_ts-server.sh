@@ -4,9 +4,6 @@
 ##
 ## Requires pigz.
 ##
-## Process Explanation:  
-##    tar -cpf /media/archive/ARCHIVE/bosnas_tsxserver/arkgameserver_YYYY-MM-DD.X.tar arkgameserver/
-##
 
 #set -x # to turn on verbose mode, useful for debugging
 
