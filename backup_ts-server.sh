@@ -4,13 +4,13 @@
 ##
 ## Requires pigz.
 ##
-
-#set -x # to turn on verbose mode, useful for debugging
+#
+#set -x # to turn on verbose mode, useful for debuggin
 
 RUNDATE=$(date +%Y-%m-%d)
 RUNTIME=$(date +%Y-%m-%d_%H%M)
-SOURCEDIR=/app/ts6server-beta/teamspeak-server_linux_amd64     ## TO-DO: modify to non-hardcoded dir
-TARG_DIR=/archive/level1/backups/ts6server-beta 
+SOURCEDIR=/app/ts6server-beta/amd64                              ## TO-DO: modify to non-hardcoded dir
+TARG_DIR=/archive/level1/backups/ts6server-beta
 COUNT=$(ls ${TARG_DIR} | grep -c $(date +%Y-%m-%d'\.'))
 VAR_NUM=$(ls ${TARG_DIR} | grep -cv '.gz\|.txt')
 FILE_CNT=$((COUNT+1))
@@ -36,16 +36,16 @@ echo $(date +%Y-%m-%d" "%H:%M:%S)" | DEBUG | ===================================
 
 #################
 fn_findAndDelete() {
-## Delete data & files older than x days                       ## TO-DO: modify to non-hardcoded day number
-#set -x
-find ${TARG_DIR} -mtime +9 -name '*.gz' -delete
-find ${TARG_DIR} -mtime +9 -name '*.gz' -delete                >> ${JOB_LOG}
+## Delete data & files older than x days
+DAYS=9
+find ${TARG_DIR} -mtime +${DAYS} -name '*.gz' -delete
+find ${TARG_DIR} -mtime +${DAYS} -name '*.gz' -delete                >> ${JOB_LOG}
 
-find ${TARG_DIR} -mtime +9 -name '*.txt' -delete
-find ${TARG_DIR} -mtime +9 -name '*.txt' -delete               >> ${JOB_LOG}
+find ${TARG_DIR} -mtime +${DAYS}-name '*.txt' -delete
+find ${TARG_DIR} -mtime +${DAYS} -name '*.txt' -delete               >> ${JOB_LOG}
 
-find ${SOURCEDIR}/logs -mtime +9 -name '*.log' -delete
-find ${SOURCEDIR}/logs -mtime +9 -name '*.log' -delete         >> ${JOB_LOG}
+find ${SOURCEDIR}/logs -mtime +${DAYS} -name '*.log' -delete
+find ${SOURCEDIR}/logs -mtime +${DAYS} -name '*.log' -delete         >> ${JOB_LOG}
 
 }
 #################
@@ -70,19 +70,19 @@ if [ "$VAR_NUM" = 0 ] ;  then
         else 
     while [ "${VAR_NUM}" -gt 0 ] 
         do
-        #GZIP_FILE=$(ls -t ${TARG_DIR}| grep -v gz | tail -n1 | awk '{print $1 }')
-	GZIP_FILE=$(ls -t ${TARG_DIR}| grep tar | grep -v 'tar.gz' | tail -n50 | awk '{print $1 }')
+	GZIP_FILE=$(ls -t ${TARG_DIR}| grep tar | grep -v '.tar.gz' | tail -n1 | awk '{print $1 }') 
 	echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}" 
 	echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}"   >> ${JOB_LOG}
 ## Comment out next line when debugging/testing and not want to actually perform the pigz operation
-##        pigz -9 ${TARG_DIR}/"${GZIP_FILE}"
-        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for file ${GZIP_FILE}" 
-        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for file ${GZIP_FILE}" >> ${JOB_LOG}
+        pigz -9 ${TARG_DIR}/"${GZIP_FILE}"
+        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation finishd for file ${GZIP_FILE}" 
+        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation finishd for file ${GZIP_FILE}" >> ${JOB_LOG}
         VAR_NUM=$((VAR_NUM-1))
         done
-    echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for all files in directory." 
-    echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for all files in directory." >> ${JOB_LOG}
+    echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation finished for all files in directory." 
+    echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation finished for all files in directory." >> ${JOB_LOG}
 fi
+#set +x
 }
 ##################
 
@@ -96,6 +96,10 @@ $(touch ${TARG_DIR}/${RUNTIME}_dir_size_is_${ARCHIVE_UTIL}.txt)
 }
 ##################
 
+### MAIN SCRIPT ###
+
+echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Main Process Started!" 
+echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Main Process Started!"   >> ${JOB_LOG}
 
 fn_debug
 fn_findAndDelete
