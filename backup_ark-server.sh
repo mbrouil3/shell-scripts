@@ -9,6 +9,9 @@
 
 #set -x
 
+## Declare and init variables
+## Modify SOURCEDIR and TARG_DIR accordingly to match your system's installation & file structure
+#
 RUNDATE=$(date +%Y-%m-%d)
 RUNTIME=$(date +%Y-%m-%d_%H%M)
 SOURCEDIR=/app/arkserver/arkgameserver/ShooterGame
@@ -39,32 +42,37 @@ echo $(date +%Y-%m-%d" "%H:%M:%S)" | DEBUG | ===================================
 
 #################
 fn_findAndDelete() {
-## Delete data & files older than x days
-#set -x
-find ${TARG_DIR} -mtime +15 -name '*.gz' -delete
-find ${TARG_DIR} -mtime +15 -name '*.gz' -delete                >> ${JOB_LOG}
+## Delete data older than the established retention
+#
+## Set retention  (in days)
+DAYS=15
 
-find ${TARG_DIR} -mtime +15 -name '*.txt' -delete
-find ${TARG_DIR} -mtime +15 -name '*.txt' -delete               >> ${JOB_LOG}
+find ${TARG_DIR} -mtime +${DAYS} -name '*.gz' -delete
+find ${TARG_DIR} -mtime +${DAYS} -name '*.gz' -delete                >> ${JOB_LOG}
 
-find ${SOURCEDIR}/Saved/Logs -mtime +15 -name '*.log' -delete
-find ${SOURCEDIR}/Saved/Logs -mtime +15 -name '*.log' -delete   >> ${JOB_LOG}
+find ${TARG_DIR} -mtime +${DAYS} -name '*.txt' -delete
+find ${TARG_DIR} -mtime +${DAYS} -name '*.txt' -delete               >> ${JOB_LOG}
 
-find /app/arkserver/logs.d -mtime +15 -name 'backup_*' -delete
-find /app/arkserver/logs.d -mtime +15 -name 'backup_*' -delete  >> ${JOB_LOG}
+find ${SOURCEDIR}/Saved/Logs -mtime +${DAYS} -name '*.log' -delete
+find ${SOURCEDIR}/Saved/Logs -mtime +${DAYS} -name '*.log' -delete   >> ${JOB_LOG}
+
+find /app/arkserver/logs.d -mtime +${DAYS} -name 'backup_*' -delete
+find /app/arkserver/logs.d -mtime +${DAYS} -name 'backup_*' -delete  >> ${JOB_LOG}
 }
 #################
 
 #################
 fn_backup() {
+## Function to backup the ARK server data with tar
+#
 echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Backing up ARK Server... please wait..." 
 echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Backing up ARK Server... please wait..."     >> ${JOB_LOG}
 
 ## Exclude following mods to save space & time (we dont need them archived):
 ##    111111111       = Primitive Plus
-##    FjordurOfficial = WC Community Fjordur Map (NOT the OG modded map)
-##    Ragnarok        = WC Community Ranarok Map (NOT the OG modded map)
-##    TheCenter       = WC official The Center Map
+##    FjordurOfficial = WildCard converted Fjordur Map (NOT the original community map)
+##    Ragnarok        = WildCard converted Ranarok Map (NOT the original community map)
+##    TheCenter       = The Center Map
 ##    Valguero        = Map
 ##    LostIsland      = Map
 tar --exclude="${SOURCEDIR}/Content/Mods/111111111" --exclude="${SOURCEDIR}/Content/Mods/FjordurOfficial" --exclude="${SOURCEDIR}/Content/Mods/Ragnarok" --exclude="${SOURCEDIR}/Content/Mods/TheCenter" --exclude="${SOURCEDIR}/Content/Mods/Valguero" --exclude="${SOURCEDIR}/Content/Mods/LostIsland" -cpf ${TARG_DIR}/"${FILE_NAME}" ${SOURCEDIR}/Content/Mods ${SOURCEDIR}/Saved
@@ -75,17 +83,17 @@ echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Backup complete & located at: ${TARG
 
 ##################
 fn_pigz (){
-#set -x
+## Function to compress existing .tar files with pigz (parallel implementation of GZ)
+#
 if [ "$VAR_NUM" = 0 ] ;  then
         echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | No Files to gzip, so skipping." 
         echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | No Files to gzip, so skipping."    >> ${JOB_LOG}
         else 
     while [ "${VAR_NUM}" -gt 0 ] 
         do
-        #GZIP_FILE=$(ls -t ${TARG_DIR}| grep -v gz | tail -n1 | awk '{print $1 }')
-	GZIP_FILE=$(ls -t ${TARG_DIR}| grep tar | grep -v 'tar.gz' | tail -n50 | awk '{print $1 }')
-	echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}" 
-	echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}"   >> ${JOB_LOG}
+        GZIP_FILE=$(ls -t ${TARG_DIR}| grep tar | grep -v 'tar.gz' | tail -n50 | awk '{print $1 }')
+        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}" 
+        echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation started for file ${GZIP_FILE}"   >> ${JOB_LOG}
         pigz -9 ${TARG_DIR}/"${GZIP_FILE}"
         echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for file ${GZIP_FILE}" 
         echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | PIGZ operation completed for file ${GZIP_FILE}" >> ${JOB_LOG}
@@ -101,6 +109,11 @@ fi
 
 ##################
 fn_outputDirSize () {
+## Function to place a file in TARG_DIR explaining archive size as of the backup datestamp
+## Useful for checking TARG_DIR size over time 
+#
+## Example: 2025-12-21_2300_dir_size_is_72G.txt
+#
 ARCHIVE_UTIL=$(ls -lh ${TARG_DIR} | head -n1 | awk '{print $2}')
 echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Archive Size Dir written to temp file" 
 echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Archive Size Dir written to temp file" >> ${JOB_LOG}
@@ -121,4 +134,3 @@ echo $(date +%Y-%m-%d" "%H:%M:%S)" | INFO | Process complete! Now exiting."   >>
 
 sleep 1
 ## End of script
-
